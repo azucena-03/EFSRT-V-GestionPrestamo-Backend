@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -59,24 +60,36 @@ public class SolicitudPrestamoCrudController {
 		}
 		return ResponseEntity.ok(salida);
 	}
-
+	
 	@PutMapping("/actualizaPrestamo")
 	@ResponseBody
 	public ResponseEntity<Map<String, Object>> actualizaPrestamo(@RequestBody SolicitudPrestamo obj) {
-		Map<String, Object> salida = new HashMap<>();
-		try {		
-			obj.setFechaActualizacion(new Date());
-			
-			SolicitudPrestamo objSalida =  prestamoService.insertaActualizaSolicitudPrestamo(obj);
-			if (objSalida == null) {
-				salida.put("mensaje", AppSettings.MENSAJE_ACT_ERROR);
-			} else {
-				salida.put("mensaje", AppSettings.MENSAJE_ACT_EXITOSO);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			salida.put("mensaje", AppSettings.MENSAJE_ACT_ERROR);
-		}
-		return ResponseEntity.ok(salida);
+	    Map<String, Object> salida = new HashMap<>();
+	    try {		
+	        Optional<SolicitudPrestamo> solicitudExistente = prestamoService.buscaPorId(obj.getIdSolicitud());
+
+	        if (solicitudExistente.isPresent()) {
+	            SolicitudPrestamo solicitudOriginal = solicitudExistente.get();
+	            
+	            solicitudOriginal.setEstadoSolicitud(obj.getEstadoSolicitud());
+	            solicitudOriginal.setFechaActualizacion(new Date());
+	            solicitudOriginal.setUsuarioActualiza(obj.getUsuarioActualiza());
+	            
+	            SolicitudPrestamo objSalida = prestamoService.insertaActualizaSolicitudPrestamo(solicitudOriginal);
+	            if (objSalida == null) {
+	                salida.put("mensaje", AppSettings.MENSAJE_ACT_ERROR);
+	            } else {
+	                salida.put("mensaje", AppSettings.MENSAJE_ACT_EXITOSO);
+	            }
+	        } else {
+	            salida.put("mensaje", "Solicitud no encontrada");
+	        }
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        salida.put("mensaje", AppSettings.MENSAJE_ACT_ERROR);
+	    }
+	    return ResponseEntity.ok(salida);
 	}
+
 }
